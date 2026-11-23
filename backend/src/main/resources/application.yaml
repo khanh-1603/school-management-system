@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        name: SCSID
+        http-only: true
+        same-site: lax
+        secure: false          # true khi chạy HTTPS
+      timeout: 30m
+      persistent: true
+      store-dir: data/sessions
+
+spring:
+  datasource:
+    url: jdbc:sqlite:data/school.db   # thư mục phải khớp app.db.dir
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-init-sql: PRAGMA foreign_keys = ON
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  sql:
+    init:
+      mode: never                     # DB do DatabaseInitializer lo
+
+app:
+  db:
+    dir: data
+    seed: true                        # false khi muốn DB rỗng
+  security:
+    allowed-origins:
+      - http://localhost:5173         # Vite dev
+      - http://localhost:8080
