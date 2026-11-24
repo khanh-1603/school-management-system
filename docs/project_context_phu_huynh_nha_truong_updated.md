@@ -620,7 +620,7 @@ Ghi chú:
 | 11 | Path/query sai kiểu hoặc giá trị: `/students/abc`, `term=HK3`, `schoolYear=2024`, `status=ABC`, `from` lớn hơn `to` | 400 | `VALIDATION_ERROR` | Tham số không hợp lệ. | `MethodArgumentTypeMismatchException`, `ConstraintViolationException`, kiểm tra trong service |
 | 12 | Quy tắc nghiệp vụ trên dữ liệu gửi lên: `toDate < fromDate`, `fromDate` quá khứ, điểm danh T7/CN/tương lai, điểm ngoài 0–10 hoặc quá 2 chữ số thập phân; batch có phần tử sai (không ghi gì) | 400 | `VALIDATION_ERROR` | Nêu quy tắc ngắn, ví dụ "Ngày bắt đầu không được ở quá khứ." | Service ném `AppException(VALIDATION_ERROR, ...)` |
 | 13 | ID tham chiếu **trong body** sai: `studentId` không thuộc `classId`, `parentId` không phải PARENT, `teacherId` không phải TEACHER | 400 | `VALIDATION_ERROR` | Dữ liệu tham chiếu không hợp lệ. | Service kiểm tra role và quan hệ trước khi ghi (ID trên URL không thấy thì là 404, ID trong body sai thì là 400) |
-| 14 | Method hoặc `Content-Type` không hỗ trợ (405/415) | 400 | `VALIDATION_ERROR` | Yêu cầu không được hỗ trợ. | `HttpRequestMethodNotSupportedException`, `HttpMediaTypeNotSupportedException` (gộp để giữ đúng 6 mã) |
+| 14 | Method hoặc `Content-Type` không hỗ trợ (405/415); `Accept` không đáp ứng được (406) | 400 | `VALIDATION_ERROR` | Yêu cầu không được hỗ trợ. | `HttpRequestMethodNotSupportedException`, `HttpMediaTypeNotSupportedException`, `HttpMediaTypeNotAcceptableException`; gộp có chủ ý, xem ghi chú "Quyết định gộp 405/415/406" bên dưới |
 | 15 | Sửa hoặc duyệt đơn nghỉ không còn `PENDING` | 409 | `CONFLICT` | Đơn đã được xử lý, không thể thay đổi. | `UPDATE ... WHERE id = ? AND status = 'PENDING'`; 0 dòng bị ảnh hưởng sau khi đã xác nhận quyền thì trả 409 (chống race) |
 | 16 | Trùng dữ liệu: email, mã lớp + năm học, GVCN đã chủ nhiệm lớp khác cùng năm, mã học sinh, học sinh đã có phụ huynh, phân công trùng (lớp, môn) | 409 | `CONFLICT` | "<Trường> đã tồn tại." | Đọc mã lỗi của `SQLiteException`: `SQLITE_CONSTRAINT_UNIQUE` / `SQLITE_CONSTRAINT_PRIMARYKEY` (Spring thường bọc thành `DataIntegrityViolationException`) |
 | 17 | Gỡ liên kết hoặc phân công đang được dùng (liên kết có đơn nghỉ; phân công có thời khóa biểu) | 409 | `CONFLICT` | Không thể xóa vì đang được sử dụng. | `SQLITE_CONSTRAINT_FOREIGNKEY` |
@@ -641,7 +641,11 @@ Ghi chú triển khai:
 - Lỗi phát sinh trong filter (như `OriginFilter`) **không** đi qua `@RestControllerAdvice`; dùng chung một lớp `ApiErrorWriter` để ghi envelope.
 - Dòng 2 và 6 là hai chỗ dễ làm lộ thông tin nhất: message phải giống hệt giữa các nguyên nhân.
 - Nếu form cần biết lỗi ở field nào, có thể bổ sung `error.fields: [{"field","message"}]` vào envelope. Frontend cũ chỉ đọc `code` nên không bị ảnh hưởng. Hai bạn quyết định có làm hay không.
-
+- **Quyết định gộp 405/415/406 về 400 (có chủ ý, không phải thiếu sót):** API giữ đúng 6 mã lỗi (§16). Ba lỗi này là lỗi phía client lập trình (gọi sai phương thức HTTP, gửi sai `Content-Type`, đòi sai `Accept`), do trình duyệt hoặc công cụ gọi API gây ra, người dùng thao tác trên giao diện gần như không gặp. Nhóm nhỏ, ưu tiên nguồn lực cho phần trình bày giao diện, nên không bổ sung thêm mã và không thêm nhánh xử lý riêng ở frontend.
+  - Đánh đổi: không còn đúng ngữ nghĩa chuẩn HTTP (405/415/406); công cụ ngoài đọc API sẽ thấy 400 chung.
+  - Quy tắc "chỉ nhận `application/json` cho request ghi" vẫn giữ làm một lớp phòng CSRF; kết quả bị từ chối là 400 thay vì 415.
+  - Không có handler riêng thì Spring trả 405/415/406 với body ngoài envelope; handler `unsupported` trong `GlobalExceptionHandler` chặn lại để mọi lỗi đều đúng envelope §13.6.
+  - Nếu sau này cần đúng chuẩn: thêm mã vào `ErrorCode`, sửa handler, cập nhật dòng 14 và bảng xử lý ở frontend.
 ### Quy ước bổ sung về lỗi API
 
 - `error.fields` là trường tùy chọn, chỉ trả về khi lỗi validation cần chỉ rõ các trường không hợp lệ. Nếu không cần chỉ rõ trường, chỉ trả về `error.code` và `error.message`.
