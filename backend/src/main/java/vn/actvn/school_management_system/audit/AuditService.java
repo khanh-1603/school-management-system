@@ -6,6 +6,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import vn.actvn.school_management_system.audit.dto.AuditLogItem;
@@ -77,6 +80,7 @@ public class AuditService {
      * @param newValue    dữ liệu mới sau khi thay đổi (có thể {@code null})
      * @throws IllegalArgumentException nếu {@code entityType} không nằm trong danh sách cho phép
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void record(
             long actorUserId,
             Long studentId,
