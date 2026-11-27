@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { GuestOnly, RequireAuth } from './RouteGuards';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage, RoleHomePlaceholder } from '../pages/StatusPages';
+import AuditLogsPage from '../pages/admin/AuditLogsPage';
 
 /**
  * Xử lý đường dẫn gốc `/`: tự động điều hướng về màn hình theo role hoặc `/login`.
@@ -65,6 +66,7 @@ export function AppRouter() {
               path="/admin/users"
               element={<RoleHomePlaceholder title="A-02 · Tài khoản" />}
             />
+            <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
           </Route>
 
           {/* Mọi đường dẫn không khớp */}
